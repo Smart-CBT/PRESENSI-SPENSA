@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Portal Absensi Sekolah</title>
+
+    <meta name="theme-color" content="#090e1a">
+    <meta name="background-color" content="#090e1a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <link rel="manifest" id="pwaManifestLink">
+    <link rel="icon" type="image/svg+xml" id="pwaFavicon">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #090e1a; 
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        } 
+        #reader { width: 100% !important; height: 100% !important; border: none !important; }
+        #reader video { 
+            width: 100% !important; 
+            height: 100% !important; 
+            object-fit: cover !important; 
+            border-radius: 1rem !important;
+            transform: scaleX(-1);
+        }
+        #reader__scan_region { width: 100% !important; height: 100% !important; }
+        #reader__dashboard { display: none !important; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen text-slate-200 p-0 sm:p-4">
+
+    <!-- OVERLAY UTAMA UNTUK MEMBUKA KUNCI AUDIO CHROME -->
+    <div id="audioUnlockOverlay" onclick="bukaKunciAudioTotal()" class="fixed inset-0 z-50 bg-slate-950/98 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-opacity duration-300">
+        <div class="w-24 h-24 rounded-3xl bg-indigo-600 text-white flex items-center justify-center shadow-2xl shadow-indigo-500/50 mb-6 animate-pulse">
+            <i class="fa-solid fa-volume-high text-4xl"></i>
+        </div>
+        <h2 class="text-3xl font-extrabold text-white mb-3">Ketuk untuk Mengaktifkan Suara</h2>
+        <p class="text-slate-300 text-base max-w-sm mb-8 leading-relaxed">Ketuk layar ini sekali untuk mengizinkan pemutaran suara di Google Chrome Tablet.</p>
+        <button class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold px-8 py-4 rounded-2xl shadow-xl shadow-indigo-600/40 flex items-center gap-3 text-lg transition">
+            <i class="fa-solid fa-play"></i> Mulai Portal Absensi
+        </button>
+    </div>
+
+    <!-- Multi-Audio Pool Element untuk Chrome Android Tablet -->
+    <audio id="chromeAudioPool1" preload="auto" playsinline></audio>
+    <audio id="chromeAudioPool2" preload="auto" playsinline></audio>
+
+    <input type="text" id="rfidFocusInput" inputmode="none" autocomplete="off" style="position: absolute; opacity: 0; pointer-events: none;">
+
+    <main class="w-full max-w-[440px] h-screen sm:h-[92vh] sm:max-h-[900px] bg-slate-900 sm:rounded-[2.5rem] sm:border-[6px] sm:border-slate-800 shadow-2xl flex flex-col justify-between p-5 relative overflow-hidden">
+        
+        <header class="text-center mt-1">
+            <div class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mb-2">
+                <i class="fa-solid fa-graduation-cap text-xl"></i>
+            </div>
+            <h1 class="text-2xl font-extrabold text-white tracking-tight">Portal Absensi</h1>
+            <p class="text-slate-400 text-xs mt-0.5">Arahkan QR Code Kartu Pelajar ke Kamera</p>
+            
+            <div class="flex items-center justify-center gap-2 mt-3">
+                <div id="clockWidget" class="text-xl font-bold text-indigo-400 bg-slate-800/80 px-4 py-1.5 rounded-xl border border-slate-700/60 shadow-inner tracking-wider">
+                    --:--:--
+                </div>
+                <button onclick="tesSuaraManual()" title="Tes Suara" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 flex items-center justify-center border border-slate-700 transition">
+                    <i class="fa-solid fa-volume-high text-sm"></i>
+                </button>
+                <button onclick="gantiKamera()" title="Ganti Kamera" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center border border-slate-700 transition">
+                    <i class="fa-solid fa-camera-rotate text-sm"></i>
+                </button>
+                <button onclick="toggleFullscreenManual()" title="Fullscreen" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-400 flex items-center justify-center border border-slate-700 transition">
+                    <i id="fullscreenIcon" class="fa-solid fa-expand text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <section class="my-auto py-2 w-full flex flex-col gap-3">
+            <div id="statusCard" class="bg-slate-800 rounded-2xl p-3.5 border border-slate-700 transition-all duration-200 flex items-center gap-3">
+                <div id="statusIconBox" class="w-11 h-11 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0">
+                    <i id="statusIcon" class="fa-solid fa-qrcode text-xl"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <span id="statusBadge" class="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 mb-0.5">
+                        Siap Memindai
+                    </span>
+                    <h2 id="statusTitle" class="text-sm font-bold text-white truncate">
+                        Arahkan Kartu QR
+                    </h2>
+                    <p id="statusDesc" class="text-xs text-slate-400 truncate">
+                        Tunggu hingga kartu terbaca
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 p-2.5 rounded-3xl shadow-xl w-full border border-slate-700 relative overflow-hidden h-[340px] flex items-center justify-center">
+                <div class="bg-black rounded-2xl overflow-hidden relative border border-slate-700/80 w-full h-full flex items-center justify-center">
+                    <div id="reader" class="w-full h-full"></div>
+                    <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
+                        <div id="scanFrame" class="w-48 h-48 border-2 border-indigo-500/40 rounded-3xl relative transition-all duration-200">
+                            <div class="absolute -top-1 -left-1 w-7 h-7 border-t-4 border-l-4 border-indigo-400 rounded-tl-2xl"></div>
+                            <div class="absolute -top-1 -right-1 w-7 h-7 border-t-4 border-r-4 border-indigo-400 rounded-tr-2xl"></div>
+                            <div class="absolute -bottom-1 -left-1 w-7 h-7 border-b-4 border-l-4 border-indigo-400 rounded-bl-2xl"></div>
+                            <div class="absolute -bottom-1 -right-1 w-7 h-7 border-b-4 border-r-4 border-indigo-400 rounded-br-2xl"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <footer class="text-center pb-1 flex items-center justify-between text-xs text-slate-400 px-1">
+            <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                Scanner Aktif Tanpa Jeda
+            </span>
+            <span id="counterText" class="font-bold text-slate-300">0 Hadir</span>
+        </footer>
+
+    </main>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKVk3apqIkVMzvD4bTqZ7OCRLCLuPt4dg3h5Nfyx6v9DUMnECNTgB-i3ClIcsfKCw_mQ/exec';
+
+        localStorage.clear();
+
+        function setupPWA() {
+            const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><rect width="512" height="512" rx="115" fill="#4f46e5"/></svg>`;
+            const iconUrl = "data:image/svg+xml;utf8," + encodeURIComponent(svgIcon);
+            document.getElementById('pwaFavicon').href = iconUrl;
+            const manifestObj = { name: "EduAbsen", short_name: "EduAbsen", start_url: window.location.href, display: "fullscreen", orientation: "portrait", background_color: "#090e1a", theme_color: "#090e1a", icons: [{ src: iconUrl, sizes: "512x512", type: "image/svg+xml" }] };
+            document.getElementById('pwaManifestLink').href = URL.createObjectURL(new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' }));
+        }
+        setupPWA();
+
+        function updateClock() {
+            document.getElementById('clockWidget').innerText = new Date().toLocaleTimeString('id-ID');
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function masukFullscreen() {
+            const elem = document.documentElement;
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (elem.requestFullscreen) elem.requestFullscreen().catch(() => {});
+                else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+            }
+        }
+
+        function toggleFullscreenManual() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) masukFullscreen();
+            else if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+        }
+
+        // =========================================================================
+        // CHROME ANDROID TABLET AUDIO UNLOCKER ENGINE
+        // =========================================================================
+        let globalAudioCtx = null;
+        let activePoolIndex = 1;
+        const player1 = document.getElementById('chromeAudioPool1');
+        const player2 = document.getElementById('chromeAudioPool2');
+
+        function bukaKunciAudioTotal() {
+            masukFullscreen();
+
+            const overlay = document.getElementById('audioUnlockOverlay');
+            if (overlay) {
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+
+            // Unlock Web Audio API
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!globalAudioCtx) globalAudioCtx = new AudioContextClass();
+                if (globalAudioCtx.state === 'suspended') globalAudioCtx.resume();
+            } catch (e) {}
+
+            // Paksa unlock elemen audio pool dengan base64 wav
+            try {
+                const silentWav = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+                player1.src = silentWav; player1.play().catch(() => {});
+                player2.src = silentWav; player2.play().catch(() => {});
+            } catch (e) {}
+
+            playBeep(false);
+            setTimeout(() => {
+                ucapkanSuara("Sistem absensi aktif");
+            }, 250);
+        }
+
+        function tesSuaraManual() {
+            playBeep(false);
+            setTimeout(() => {
+                ucapkanSuara("Tes suara sistem absensi berhasil");
+            }, 250);
+        }
+
+        function playBeep(isError = false) {
+            try {
+                if (!globalAudioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    globalAudioCtx = new AudioContextClass();
+                }
+                if (globalAudioCtx.state === 'suspended') globalAudioCtx.resume();
+
+                const oscillator = globalAudioCtx.createOscillator();
+                const gainNode = globalAudioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(globalAudioCtx.destination);
+                oscillator.type = 'sine';
+                oscillator.frequency.value = isError ? 300 : 950; 
+                gainNode.gain.setValueAtTime(0.8, globalAudioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, globalAudioCtx.currentTime + 0.18); 
+                oscillator.start(globalAudioCtx.currentTime);
+                oscillator.stop(globalAudioCtx.currentTime + 0.18);
+            } catch (e) {}
+        }
+
+        // Pemutar suara berganti-ganti (Audio Pooling) agar Chrome Tablet tidak menolak *stream* berturut-turut
+        function ucapkanSuara(namaSiswa, customPesan) {
+            let kalimat = customPesan ? customPesan : `${namaSiswa}, presensi masuk berhasil`;
+            
+            try {
+                const encoded = encodeURIComponent(kalimat);
+                const ttsUrl = `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=id&q=${encoded}`;
+                
+                const targetPlayer = (activePoolIndex === 1) ? player1 : player2;
+                activePoolIndex = (activePoolIndex === 1) ? 2 : 1;
+
+                targetPlayer.pause();
+                targetPlayer.src = ttsUrl;
+                targetPlayer.volume = 1.0;
+                
+                const prom = targetPlayer.play();
+                if (prom !== undefined) {
+                    prom.catch(err => {
+                        console.warn("Chrome Tablet Autoplay diblokir:", err);
+                        // Fallback instan dengan objek Audio baru
+                        const fallback = new Audio(ttsUrl);
+                        fallback.volume = 1.0;
+                        fallback.play().catch(e => {});
+                    });
+                }
+            } catch (err) {
+                console.warn("Error audio:", err);
+            }
+        }
+
+        // =========================================================================
+        // LOGIKA SCANNER & ABSENSI
+        // =========================================================================
+        const statusCard = document.getElementById('statusCard');
+        const statusIconBox = document.getElementById('statusIconBox');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusBadge = document.getElementById('statusBadge');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusDesc = document.getElementById('statusDesc');
+        const scanFrame = document.getElementById('scanFrame');
+        let resetTimer = null;
+        let hadirCount = 0;
+
+        function tampilkanStatus(tipe, badge, judul, subjudul) {
+            clearTimeout(resetTimer);
+
+            if (tipe === 'success') {
+                statusCard.className = "bg-emerald-950/80 rounded-2xl p-3.5 border-2 border-emerald-500 shadow-lg transition-all duration-200 flex items-center gap-3";
+                statusIconBox.className = "w-11 h-11 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0";
+                statusIcon.className = "fa-solid fa-check text-xl";
+                statusBadge.className = "inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-900 text-emerald-200 mb-0.5";
+                scanFrame.className = "w-48 h-48 border-4 border-emerald-400 bg-emerald-400/10 rounded-3xl relative transition-all duration-150 scale-105";
+            } else if (tipe === 'error') {
+                statusCard.className = "bg-rose-950/80 rounded-2xl p-3.5 border-2 border-rose-500 shadow-lg transition-all duration-200 flex items-center gap-3";
+                statusIconBox.className = "w-11 h-11 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0";
+                statusIcon.className = "fa-solid fa-xmark text-xl";
+                statusBadge.className = "inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-900 text-rose-200 mb-0.5";
+                scanFrame.className = "w-48 h-48 border-4 border-rose-500 bg-rose-500/10 rounded-3xl relative transition-all duration-150";
+            }
+
+            statusBadge.innerText = badge;
+            statusTitle.innerText = judul;
+            statusDesc.innerText = subjudul;
+
+            resetTimer = setTimeout(() => {
+                statusCard.className = "bg-slate-800 rounded-2xl p-3.5 border border-slate-700 transition-all duration-200 flex items-center gap-3";
+                statusIconBox.className = "w-11 h-11 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0";
+                statusIcon.className = "fa-solid fa-qrcode text-xl";
+                statusBadge.className = "inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 mb-0.5";
+                statusBadge.innerText = "Siap Memindai";
+                statusTitle.innerText = "Arahkan Kartu QR";
+                statusDesc.innerText = "Tunggu hingga kartu terbaca";
+                scanFrame.className = "w-48 h-48 border-2 border-indigo-500/40 rounded-3xl relative transition-all duration-200";
+            }, 2200);
+        }
+
+        let lastScannedCode = "";
+        let lastScannedTime = 0;
+
+        function prosesAbsen(payload, namaTampilan, identifierNIS) {
+            playBeep(false);
+
+            tampilkanStatus('success', 'Berhasil', namaTampilan, `NIS: ${identifierNIS} ${payload.kelas ? '• ' + payload.kelas : ''}`);
+            
+            setTimeout(() => {
+                ucapkanSuara(namaTampilan);
+            }, 200);
+
+            hadirCount++;
+            document.getElementById('counterText').innerText = `${hadirCount} Hadir`;
+
+            fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ aksi: 'absen', ...payload }) })
+            .then(res => res.json())
+            .then(res => {
+                if (res.status !== 'success') {
+                    const pesanServer = (res.message || "").toLowerCase();
+                    playBeep(true);
+                    if (pesanServer.includes('tidak terdaftar') || pesanServer.includes('tidak ditemukan') || pesanServer.includes('tidak ada') || res.status === 'not_found') {
+                        tampilkanStatus('error', 'Tidak Terdaftar', namaTampilan || 'QR Tidak Dikenal', 'Data siswa tidak ditemukan');
+                        setTimeout(() => ucapkanSuara("", "Mohon maaf, anda tidak terdaftar"), 200);
+                    } else {
+                        tampilkanStatus('error', 'Sudah Absen', namaTampilan, res.message || 'Siswa sudah absen hari ini');
+                        setTimeout(() => ucapkanSuara("", `Maaf ${namaTampilan}, anda sudah absen`), 200);
+                    }
+                    hadirCount = Math.max(0, hadirCount - 1);
+                    document.getElementById('counterText').innerText = `${hadirCount} Hadir`;
+                }
+            })
+            .catch(err => {
+                console.error("Gagal menyimpan ke server:", err);
+            });
+        }
+
+        function tangkapDataScan(decodedText) {
+            const now = Date.now();
+            if (decodedText === lastScannedCode && (now - lastScannedTime) < 3000) return;
+            if ((now - lastScannedTime) < 800) return;
+
+            lastScannedCode = decodedText;
+            lastScannedTime = now;
+
+            let dataSiswa = { nama: "", nis: "", kelas: "" };
+            let formatDikenali = false;
+
+            try {
+                const data = JSON.parse(decodedText);
+                if (data.nama && data.nis) { dataSiswa = data; formatDikenali = true; }
+            } catch (e) {
+                const barisText = decodedText.split('\n');
+                barisText.forEach(baris => {
+                    if (baris.toUpperCase().includes('NIS:')) dataSiswa.nis = baris.split(':')[1].trim();
+                    if (baris.toUpperCase().includes('NAMA:')) dataSiswa.nama = baris.split(':')[1].trim();
+                    if (baris.toUpperCase().includes('KELAS:')) dataSiswa.kelas = baris.split(':')[1].trim();
+                });
+                if (dataSiswa.nis && dataSiswa.nama) formatDikenali = true;
+            }
+
+            if (formatDikenali) {
+                prosesAbsen(dataSiswa, dataSiswa.nama, dataSiswa.nis);
+            } else {
+                playBeep(true);
+                tampilkanStatus('error', 'Tidak Terdaftar', 'QR Tidak Dikenali', 'Mohon maaf, Anda tidak terdaftar');
+                setTimeout(() => ucapkanSuara("", "Mohon maaf, QR tidak dikenali"), 200);
+            }
+        }
+
+        const scanInput = document.getElementById('rfidFocusInput');
+        function jagaFokusInput() { scanInput.focus({ preventScroll: true }); }
+        window.addEventListener('load', jagaFokusInput);
+        document.addEventListener('click', jagaFokusInput);
+        setInterval(jagaFokusInput, 1500);
+
+        scanInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const hasilScan = scanInput.value.trim();
+                scanInput.value = ''; 
+                if (hasilScan.length > 0) tangkapDataScan(hasilScan); 
+            }
+        });
+
+        const html5QrCode = new Html5Qrcode("reader");
+        let currentFacingMode = "user";
+
+        function mulaiKamera(facingMode) {
+            const config = { 
+                fps: 30, 
+                qrbox: function(w, h) { 
+                    const minSize = Math.min(w, h);
+                    return { width: Math.floor(minSize * 0.65), height: Math.floor(minSize * 0.65) }; 
+                },
+                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
+            };
+
+            html5QrCode.start(
+                { facingMode: facingMode }, 
+                config, 
+                (decodedText) => tangkapDataScan(decodedText)
+            ).catch(err => {
+                if (facingMode === "user") {
+                    currentFacingMode = "environment";
+                    mulaiKamera("environment");
+                }
+            });
+        }
+
+        function gantiKamera() {
+            html5QrCode.stop().then(() => {
+                currentFacingMode = (currentFacingMode === "user") ? "environment" : "user";
+                mulaiKamera(currentFacingMode);
+            }).catch(err => console.error(err));
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            mulaiKamera(currentFacingMode);
+        });
+    </script>
+</body>
+</html>
