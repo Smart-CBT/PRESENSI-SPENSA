@@ -51,6 +51,58 @@
         </button>
     </div>
 
+    <!-- MODAL PENGATURAN JADWAL OTOMATIS & BATAS TERLAMBAT -->
+    <div id="modalJamPulang" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5 w-full max-w-md shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-clock text-indigo-400"></i> Jadwal Sesi & Jam Terlambat
+                </h3>
+                <button onclick="toggleModalJam()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="space-y-3.5 text-left">
+                <div>
+                    <label class="text-xs font-semibold text-slate-400 block mb-1">Mode Penentuan Sesi</label>
+                    <select id="selectModeSesi" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-semibold focus:outline-none focus:border-indigo-500">
+                        <option value="otomatis">Otomatis Sesuai Jadwal Hari (WITA)</option>
+                        <option value="Masuk">Paksa Sesi: Absen Masuk (Tepat Waktu)</option>
+                        <option value="Terlambat">Paksa Sesi: Absen Masuk (Terlambat)</option>
+                        <option value="Pulang">Paksa Sesi: Absen Pulang</option>
+                    </select>
+                </div>
+
+                <div class="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/70 space-y-3">
+                    <div>
+                        <label class="text-xs font-semibold text-amber-400 block mb-1">
+                            <i class="fa-solid fa-bell mr-1"></i> Batas Jam Masuk / Mulai Terlambat
+                        </label>
+                        <input type="time" id="inputJamTerlambat" value="07:30" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold focus:outline-none focus:border-amber-500">
+                        <p class="text-[11px] text-slate-400 mt-1">Lewat dari jam ini akan otomatis tercatat <b>Terlambat</b>.</p>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 pt-1 border-t border-slate-700/60">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-300 block mb-1">Pulang Sen–Kam</label>
+                            <input type="time" id="inputPulangSenKam" value="14:00" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-xs text-white font-bold text-center focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-emerald-400 block mb-1">Pulang Jumat</label>
+                            <input type="time" id="inputPulangJumat" value="11:30" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-xs text-white font-bold text-center focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-indigo-400 block mb-1">Pulang Sabtu</label>
+                            <input type="time" id="inputPulangSabtu" value="12:30" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-xs text-white font-bold text-center focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-5 flex justify-between items-center gap-2">
+                <button onclick="resetJadwalDefault()" class="text-xs text-slate-400 hover:text-rose-400 px-2 py-2">Reset Default</button>
+                <button onclick="simpanPengaturanJam()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition shadow-lg shadow-indigo-600/30">Simpan Jadwal</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Input tersembunyi untuk RFID / Barcode Scanner Fisik -->
     <input type="text" id="rfidFocusInput" inputmode="none" autocomplete="off" style="position: absolute; opacity: 0; pointer-events: none;">
 
@@ -59,16 +111,22 @@
         
         <!-- Bagian Atas: Header & Jam -->
         <header class="text-center mt-1">
-            <div class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mb-2">
-                <i class="fa-solid fa-graduation-cap text-xl"></i>
+            <div class="flex items-center justify-center gap-2 mb-1.5">
+                <span id="badgeSesiAktif" onclick="toggleModalJam()" class="cursor-pointer inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm transition-all">
+                    <i class="fa-solid fa-right-to-bracket"></i> SESI: ABSEN MASUK
+                </span>
             </div>
             <h1 class="text-2xl font-extrabold text-white tracking-tight">Portal Absensi</h1>
-            <p class="text-slate-400 text-xs mt-0.5">Arahkan QR Code Kartu Siswa / Guru ke Kamera</p>
+            <p id="subHeaderJadwal" class="text-slate-400 text-xs mt-0.5">Arahkan QR Code Kartu Siswa / Guru ke Kamera</p>
             
             <div class="flex items-center justify-center gap-2 mt-3">
                 <div id="clockWidget" class="text-xl font-bold text-indigo-400 bg-slate-800/80 px-4 py-1.5 rounded-xl border border-slate-700/60 shadow-inner tracking-wider">
                     --:--:--
                 </div>
+                <!-- Tombol Atur Jadwal Jam -->
+                <button onclick="toggleModalJam()" title="Atur Jadwal Masuk/Terlambat/Pulang" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center justify-center border border-slate-700 transition">
+                    <i class="fa-solid fa-sliders text-sm"></i>
+                </button>
                 <!-- Tombol Tes Suara -->
                 <button onclick="tesSuaraManual()" title="Tes Suara Tablet" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 flex items-center justify-center border border-slate-700 transition">
                     <i id="speakerIcon" class="fa-solid fa-volume-high text-sm"></i>
@@ -125,26 +183,44 @@
         </section>
         
         <!-- Bagian Bawah: Footer Info -->
-        <footer class="text-center pb-1 flex items-center justify-between text-xs text-slate-400 px-1">
-            <span class="flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                Scanner Aktif Tanpa Jeda
+        <footer class="text-center pb-1 flex items-center justify-between text-[11px] text-slate-400 px-1">
+            <span class="flex items-center gap-1.5 truncate">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0"></span>
+                <span id="infoBatasPulang" class="truncate">Jadwal Otomatis Aktif</span>
             </span>
-            <span id="counterText" class="font-bold text-slate-300">0 Hadir</span>
+            <span id="counterText" class="font-bold text-slate-300 shrink-0">0 Masuk • 0 Telat • 0 Pulang</span>
         </footer>
 
     </main>
 
     <script>
         // =========================================================================
-        // KONFIGURASI SUPABASE & ZONA WAKTU WITA (GMT+8)
+        // 1. KONFIGURASI SUPABASE & JADWAL OTOMATIS WITA (GMT+8)
         // =========================================================================
         const SUPABASE_URL = 'https://wzhmnbjgehcwuujgkjmt.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_FEx4gFYQVOWN2a2rNC6ohg_hQoAw5kh';
         const DEFAULT_TZ = 'Asia/Makassar';
+        const NAMA_HARI_INDO = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // Konfigurasi Jadwal (Tersimpan di LocalStorage Tablet)
+        let modeSesi = localStorage.getItem('EDU_MODE_SESI') || 'otomatis';
+        let jamBatasTerlambat = localStorage.getItem('EDU_JAM_TERLAMBAT') || '07:30';
+        let jamPulangSenKam = localStorage.getItem('EDU_PULANG_SENKAM') || '14:00';
+        let jamPulangJumat = localStorage.getItem('EDU_PULANG_JUMAT') || '11:30';
+        let jamPulangSabtu = localStorage.getItem('EDU_PULANG_SABTU') || '12:30';
+
+        function muatNilaiInputJadwal() {
+            document.getElementById('selectModeSesi').value = modeSesi;
+            document.getElementById('inputJamTerlambat').value = jamBatasTerlambat;
+            document.getElementById('inputPulangSenKam').value = jamPulangSenKam;
+            document.getElementById('inputPulangJumat').value = jamPulangJumat;
+            document.getElementById('inputPulangSabtu').value = jamPulangSabtu;
+        }
+        muatNilaiInputJadwal();
+
+        // Ambil Waktu & Hari Presisi sesuai Zona Waktu WITA (Asia/Makassar)
         function getWaktuWITA() {
             const now = new Date();
             const parts = new Intl.DateTimeFormat('en-GB', {
@@ -156,66 +232,147 @@
 
             const p = {};
             parts.forEach(item => p[item.type] = item.value);
+
+            // Hitung indeks hari (0 = Minggu ... 5 = Jumat, 6 = Sabtu) berdasarkan tanggal WITA
+            const witaDateObj = new Date(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}`);
+            const dayIndex = witaDateObj.getDay();
+
             return {
                 timestamp: `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}:${p.second}`,
-                tanggalKey: `${p.year}-${p.month}-${p.day}`
+                tanggalKey: `${p.year}-${p.month}-${p.day}`,
+                jamMenit: `${p.hour}:${p.minute}`,
+                dayIndex: dayIndex,
+                namaHari: NAMA_HARI_INDO[dayIndex]
             };
+        }
+
+        // Ambil batas jam pulang hari ini berdasarkan hari (Jumat / Sabtu / Senin-Kamis)
+        function getBatasJamPulangHariIni(dayIndex) {
+            if (dayIndex === 5) return jamPulangJumat; // Jumat
+            if (dayIndex === 6) return jamPulangSabtu; // Sabtu
+            return jamPulangSenKam;                    // Senin - Kamis (dan Minggu)
+        }
+
+        // Menentukan Sesi Aktif: 'Masuk', 'Terlambat', atau 'Pulang'
+        function tentukanSesiSaatIni() {
+            const { jamMenit, dayIndex, namaHari } = getWaktuWITA();
+            const batasPulangHariIni = getBatasJamPulangHariIni(dayIndex);
+
+            if (modeSesi !== 'otomatis') {
+                return { status: modeSesi, batasPulang: batasPulangHariIni, namaHari };
+            }
+
+            if (jamMenit >= batasPulangHariIni) {
+                return { status: 'Pulang', batasPulang: batasPulangHariIni, namaHari };
+            } else if (jamMenit > jamBatasTerlambat) {
+                return { status: 'Terlambat', batasPulang: batasPulangHariIni, namaHari };
+            } else {
+                return { status: 'Masuk', batasPulang: batasPulangHariIni, namaHari };
+            }
+        }
+
+        function updateIndikatorSesiUI() {
+            const { status, batasPulang, namaHari } = tentukanSesiSaatIni();
+            const badge = document.getElementById('badgeSesiAktif');
+            const infoFooter = document.getElementById('infoBatasPulang');
+
+            if (status === 'Pulang') {
+                badge.className = "cursor-pointer inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm";
+                badge.innerHTML = `<i class="fa-solid fa-person-walking-arrow-right"></i> SESI: ABSEN PULANG (${namaHari})`;
+            } else if (status === 'Terlambat') {
+                badge.className = "cursor-pointer inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm";
+                badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> SESI: MASUK - TERLAMBAT (> ${jamBatasTerlambat})`;
+            } else {
+                badge.className = "cursor-pointer inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm";
+                badge.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> SESI: MASUK TEPAT WAKTU`;
+            }
+
+            infoFooter.innerText = modeSesi === 'otomatis'
+                ? `${namaHari}: Telat >${jamBatasTerlambat} • Pulang >=${batasPulang}`
+                : `Mode Manual: Paksa ${modeSesi}`;
+        }
+
+        function toggleModalJam() {
+            document.getElementById('modalJamPulang').classList.toggle('hidden');
+        }
+
+        function simpanPengaturanJam() {
+            modeSesi = document.getElementById('selectModeSesi').value;
+            jamBatasTerlambat = document.getElementById('inputJamTerlambat').value || '07:30';
+            jamPulangSenKam = document.getElementById('inputPulangSenKam').value || '14:00';
+            jamPulangJumat = document.getElementById('inputPulangJumat').value || '11:30';
+            jamPulangSabtu = document.getElementById('inputPulangSabtu').value || '12:30';
+
+            localStorage.setItem('EDU_MODE_SESI', modeSesi);
+            localStorage.setItem('EDU_JAM_TERLAMBAT', jamBatasTerlambat);
+            localStorage.setItem('EDU_PULANG_SENKAM', jamPulangSenKam);
+            localStorage.setItem('EDU_PULANG_JUMAT', jamPulangJumat);
+            localStorage.setItem('EDU_PULANG_SABTU', jamPulangSabtu);
+
+            updateIndikatorSesiUI();
+            toggleModalJam();
+        }
+
+        function resetJadwalDefault() {
+            localStorage.removeItem('EDU_MODE_SESI');
+            localStorage.removeItem('EDU_JAM_TERLAMBAT');
+            localStorage.removeItem('EDU_PULANG_SENKAM');
+            localStorage.removeItem('EDU_PULANG_JUMAT');
+            localStorage.removeItem('EDU_PULANG_SABTU');
+
+            modeSesi = 'otomatis';
+            jamBatasTerlambat = '07:30';
+            jamPulangSenKam = '14:00';
+            jamPulangJumat = '11:30';
+            jamPulangSabtu = '12:30';
+
+            muatNilaiInputJadwal();
+            updateIndikatorSesiUI();
+            toggleModalJam();
         }
 
         function updateClock() {
             document.getElementById('clockWidget').innerText = new Date().toLocaleTimeString('id-ID', { timeZone: DEFAULT_TZ });
+            updateIndikatorSesiUI();
         }
         setInterval(updateClock, 1000);
         updateClock();
 
         // =========================================================================
-        // FITUR FULLSCREEN KIOSK OTOMATIS & MANUAL
+        // 2. FITUR FULLSCREEN KIOSK OTOMATIS & MANUAL
         // =========================================================================
         function masukFullscreen() {
             const elem = document.documentElement;
             if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(() => {});
-                } else if (elem.webkitRequestFullscreen) {
-                    elem.webkitRequestFullscreen();
-                } else if (elem.msRequestFullscreen) {
-                    elem.msRequestFullscreen();
-                }
+                if (elem.requestFullscreen) elem.requestFullscreen().catch(() => {});
+                else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+                else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
             }
         }
 
         function keluarFullscreen() {
-            if (document.exitFullscreen) {
-                document.exitFullscreen().catch(() => {});
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
-            }
+            if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            else if (document.msExitFullscreen) document.msExitFullscreen();
         }
 
         function toggleFullscreenManual() {
-            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                masukFullscreen();
-            } else {
-                keluarFullscreen();
-            }
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) masukFullscreen();
+            else keluarFullscreen();
         }
 
         function updateFullscreenIcon() {
             const icon = document.getElementById('fullscreenIcon');
             if (!icon) return;
-            if (document.fullscreenElement || document.webkitFullscreenElement) {
-                icon.className = "fa-solid fa-compress text-sm";
-            } else {
-                icon.className = "fa-solid fa-expand text-sm";
-            }
+            icon.className = (document.fullscreenElement || document.webkitFullscreenElement) 
+                ? "fa-solid fa-compress text-sm" 
+                : "fa-solid fa-expand text-sm";
         }
         document.addEventListener('fullscreenchange', updateFullscreenIcon);
         document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
 
         // =========================================================================
-        // SISTEM AUDIO & SUARA KHUSUS TABLET / MOBILE (ANTI-BLOKIR AUTOPLAY)
+        // 3. SISTEM AUDIO & SUARA KHUSUS TABLET / MOBILE (ANTI-BLOKIR AUTOPLAY)
         // =========================================================================
         let globalAudioCtx = null;
         let suaraIndoTerpilih = null;
@@ -248,15 +405,9 @@
 
             try {
                 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                if (!globalAudioCtx) {
-                    globalAudioCtx = new AudioContextClass();
-                }
-                if (globalAudioCtx.state === 'suspended') {
-                    globalAudioCtx.resume();
-                }
-            } catch (e) {
-                console.warn("AudioContext error:", e);
-            }
+                if (!globalAudioCtx) globalAudioCtx = new AudioContextClass();
+                if (globalAudioCtx.state === 'suspended') globalAudioCtx.resume();
+            } catch (e) {}
 
             playBeep(false);
             muatSuaraBahasaIndonesia();
@@ -266,18 +417,15 @@
         function tesSuaraManual() {
             playBeep(false);
             muatSuaraBahasaIndonesia();
-            ucapkanSuara("", "Tes suara sistem absensi berhasil");
+            const { status, namaHari } = tentukanSesiSaatIni();
+            ucapkanSuara("", `Tes suara berhasil, hari ${namaHari}, sesi absen ${status.toLowerCase()}`);
         }
 
         function playBeep(isError = false) {
             try {
                 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                if (!globalAudioCtx) {
-                    globalAudioCtx = new AudioContextClass();
-                }
-                if (globalAudioCtx.state === 'suspended') {
-                    globalAudioCtx.resume();
-                }
+                if (!globalAudioCtx) globalAudioCtx = new AudioContextClass();
+                if (globalAudioCtx.state === 'suspended') globalAudioCtx.resume();
 
                 const oscillator = globalAudioCtx.createOscillator();
                 const gainNode = globalAudioCtx.createGain();
@@ -289,12 +437,9 @@
                 gainNode.gain.exponentialRampToValueAtTime(0.001, globalAudioCtx.currentTime + 0.15); 
                 oscillator.start(globalAudioCtx.currentTime);
                 oscillator.stop(globalAudioCtx.currentTime + 0.15);
-            } catch (e) {
-                console.warn("Gagal memutar beep:", e);
-            }
+            } catch (e) {}
         }
 
-        // Bersihkan gelar saat diucapkan agar suara TTS natural
         function bersihkanGelar(nama) {
             if (!nama) return "";
             return nama.replace(/S\.Pd|M\.Pd|S\.Kom|Gr\.|Drs\.|Dra\.|S\.Ag|M\.M|S\.Si|H\.|Hj\./gi, '').replace(/[.,]/g, ' ').trim();
@@ -306,12 +451,8 @@
 
             if ('speechSynthesis' in window) {
                 try {
-                    if (window.speechSynthesis.paused) {
-                        window.speechSynthesis.resume();
-                    }
-                    if (window.speechSynthesis.speaking) {
-                        window.speechSynthesis.cancel();
-                    }
+                    if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+                    if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
 
                     setTimeout(() => {
                         if (!suaraIndoTerpilih) muatSuaraBahasaIndonesia();
@@ -322,13 +463,8 @@
                         utterance.pitch = 1.0;
                         utterance.volume = 1.0;
 
-                        if (suaraIndoTerpilih) {
-                            utterance.voice = suaraIndoTerpilih;
-                        }
-
-                        utterance.onerror = () => {
-                            putarFallbackTTSOnline(teksLengkap);
-                        };
+                        if (suaraIndoTerpilih) utterance.voice = suaraIndoTerpilih;
+                        utterance.onerror = () => putarFallbackTTSOnline(teksLengkap);
 
                         window.speechSynthesis.speak(utterance);
                     }, 60);
@@ -348,6 +484,9 @@
             } catch (e) {}
         }
 
+        // =========================================================================
+        // 4. SINKRONISASI COUNTER & KARTU STATUS UI
+        // =========================================================================
         const statusCard = document.getElementById('statusCard');
         const statusIconBox = document.getElementById('statusIconBox');
         const statusIcon = document.getElementById('statusIcon');
@@ -356,19 +495,26 @@
         const statusDesc = document.getElementById('statusDesc');
         const scanFrame = document.getElementById('scanFrame');
         let resetTimer = null;
-        let hadirCount = 0;
+        let masukCount = 0;
+        let telatCount = 0;
+        let pulangCount = 0;
 
-        // Sinkronisasi jumlah kehadiran hari ini dari Supabase saat halaman dibuka
+        function updateCounterUI() {
+            document.getElementById('counterText').innerText = `${masukCount} Masuk • ${telatCount} Telat • ${pulangCount} Pulang`;
+        }
+
         async function sinkronkanJumlahHadirHariIni() {
             try {
                 const { tanggalKey } = getWaktuWITA();
-                const { count, error } = await db
+                const { data, error } = await db
                     .from('absensi')
-                    .select('*', { count: 'exact', head: true })
+                    .select('status')
                     .eq('tanggal_key', tanggalKey);
-                if (!error && count !== null) {
-                    hadirCount = count;
-                    document.getElementById('counterText').innerText = `${hadirCount} Hadir`;
+                if (!error && data) {
+                    masukCount = data.filter(r => r.status === 'Masuk').length;
+                    telatCount = data.filter(r => r.status === 'Terlambat').length;
+                    pulangCount = data.filter(r => r.status === 'Pulang').length;
+                    updateCounterUI();
                 }
             } catch (e) {}
         }
@@ -383,6 +529,18 @@
                 statusIcon.className = "fa-solid fa-check text-xl";
                 statusBadge.className = "inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-900 text-emerald-200 mb-0.5";
                 scanFrame.className = "w-48 h-48 border-4 border-emerald-400 bg-emerald-400/10 rounded-3xl relative transition-all duration-150 scale-105";
+            } else if (tipe === 'terlambat') {
+                statusCard.className = "bg-amber-950/80 rounded-2xl p-3.5 border-2 border-amber-500 shadow-lg transition-all duration-200 flex items-center gap-3";
+                statusIconBox.className = "w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0";
+                statusIcon.className = "fa-solid fa-clock text-xl";
+                statusBadge.className = "inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-900 text-amber-200 mb-0.5";
+                scanFrame.className = "w-48 h-48 border-4 border-amber-400 bg-amber-400/10 rounded-3xl relative transition-all duration-150 scale-105";
+            } else if (tipe === 'pulang') {
+                statusCard.className = "bg-sky-950/80 rounded-2xl p-3.5 border-2 border-sky-500 shadow-lg transition-all duration-200 flex items-center gap-3";
+                statusIconBox.className = "w-11 h-11 rounded-xl bg-sky-500 text-white flex items-center justify-center shrink-0";
+                statusIcon.className = "fa-solid fa-person-walking-arrow-right text-xl";
+                statusBadge.className = "inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-900 text-sky-200 mb-0.5";
+                scanFrame.className = "w-48 h-48 border-4 border-sky-400 bg-sky-400/10 rounded-3xl relative transition-all duration-150 scale-105";
             } else if (tipe === 'guru') {
                 statusCard.className = "bg-purple-950/80 rounded-2xl p-3.5 border-2 border-purple-500 shadow-lg transition-all duration-200 flex items-center gap-3";
                 statusIconBox.className = "w-11 h-11 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0";
@@ -417,7 +575,7 @@
         let lastScannedTime = 0;
 
         // =========================================================================
-        // PROSES ABSENSI LANGSUNG KE SUPABASE (GURU & SISWA)
+        // 5. PROSES ABSENSI (MASUK / TERLAMBAT / PULANG) KE SUPABASE
         // =========================================================================
         async function prosesAbsen(payload, namaTampilan, identifierID) {
             try {
@@ -481,63 +639,82 @@
                     }
                 }
 
-                // JIKA DATA TIDAK DITEMUKAN DI SUPABASE
                 if (!ditemukan) {
                     playBeep(true);
-                    tampilkanStatus('error', 'Tidak Terdaftar', namaTampilan || 'QR Tidak Dikenal', 'Data tidak terdaftar di Data Siswa maupun Data Guru!');
+                    tampilkanStatus('error', 'Tidak Terdaftar', namaTampilan || 'QR Tidak Dikenal', 'Data tidak terdaftar di sistem');
                     ucapkanSuara("", "Mohon Maaf, kartu tidak terdaftar");
                     return;
                 }
 
                 const { timestamp, tanggalKey } = getWaktuWITA();
+                const { status: statusSesi, batasPulang } = tentukanSesiSaatIni(); // 'Masuk', 'Terlambat', atau 'Pulang'
 
-                // 3. VALIDASI ANTI-DUPLIKAT BACKEND (1x ABSEN PER HARI)
-                const { data: cekDup } = await db
+                // 3. CEK RIWAYAT ABSEN HARI INI UNTUK ID TERSEBUT
+                const { data: riwayatHariIni } = await db
                     .from('absensi')
-                    .select('id')
+                    .select('id, status')
                     .eq('tanggal_key', tanggalKey)
-                    .eq('nis_nip', targetID)
-                    .limit(1);
+                    .eq('nis_nip', targetID);
 
-                if (cekDup && cekDup.length > 0) {
+                // Kedatangan mencakup status 'Masuk' maupun 'Terlambat'
+                const sudahDatang = (riwayatHariIni || []).some(r => r.status === 'Masuk' || r.status === 'Terlambat');
+                const sudahPulang = (riwayatHariIni || []).some(r => r.status === 'Pulang');
+
+                if ((statusSesi === 'Masuk' || statusSesi === 'Terlambat') && sudahDatang) {
                     playBeep(true);
-                    tampilkanStatus('error', 'Sudah Absen', targetNama, `${targetNama} sudah absen hari ini!`);
-                    ucapkanSuara("Maaf " + targetNama, "Anda sudah absen hari ini");
+                    tampilkanStatus('error', 'Sudah Absen Masuk', targetNama, `Absen pulang hari ini dibuka pukul ${batasPulang} WITA`);
+                    ucapkanSuara("Maaf " + targetNama, "Anda sudah absen masuk hari ini");
                     return;
                 }
 
-                // 4. SIMPAN KE TABEL ABSENSI SUPABASE
+                if (statusSesi === 'Pulang' && sudahPulang) {
+                    playBeep(true);
+                    tampilkanStatus('error', 'Sudah Absen Pulang', targetNama, `${targetNama} sudah tercatat pulang hari ini!`);
+                    ucapkanSuara("Maaf " + targetNama, "Anda sudah absen pulang hari ini");
+                    return;
+                }
+
+                // 4. SIMPAN KE TABEL ABSENSI SUPABASE ('Masuk' / 'Terlambat' / 'Pulang')
                 const { error: errInsert } = await db.from('absensi').insert([{
                     waktu: timestamp,
                     tanggal_key: tanggalKey,
                     nama: targetNama,
                     nis_nip: targetID,
                     kelas_jabatan: targetKeterangan,
-                    status: 'Masuk',
+                    status: statusSesi,
                     tipe: tipeUser
                 }]);
 
                 if (errInsert) throw errInsert;
 
-                // 5. BERHASIL -> PUTAR BEEP, UPDATE STATUS & PANGGIL SUARA NAMA
+                // 5. BERHASIL -> PUTAR BEEP, UPDATE STATUS & PANGGIL SUARA SESUAI STATUS
                 playBeep(false);
                 const isGuru = tipeUser === 'Guru';
                 const subJudul = isGuru 
-                    ? `NIP: ${targetID} • Dewan Guru` 
-                    : `NIS: ${targetID} • ${targetKeterangan}`;
+                    ? `NIP: ${targetID} • Dewan Guru (${statusSesi})` 
+                    : `NIS: ${targetID} • ${targetKeterangan} (${statusSesi})`;
 
-                tampilkanStatus(
-                    isGuru ? 'guru' : 'success', 
-                    isGuru ? 'Presensi Guru' : 'Berhasil', 
-                    targetNama, 
-                    subJudul
-                );
+                let temaKartu = 'success';
+                if (isGuru) temaKartu = 'guru';
+                else if (statusSesi === 'Terlambat') temaKartu = 'terlambat';
+                else if (statusSesi === 'Pulang') temaKartu = 'pulang';
+
+                const labelBadge = `${tipeUser} • ${statusSesi}`;
+                tampilkanStatus(temaKartu, labelBadge, targetNama, subJudul);
 
                 const sapaan = isGuru ? `Bapak Ibu ${targetNama}` : targetNama;
-                ucapkanSuara(sapaan, "presensi berhasil");
+                let kalimatSuara = "presensi masuk berhasil";
+                if (statusSesi === 'Terlambat') {
+                    kalimatSuara = "presensi masuk tercatat terlambat";
+                } else if (statusSesi === 'Pulang') {
+                    kalimatSuara = "presensi pulang berhasil, hati-hati di jalan";
+                }
+                ucapkanSuara(sapaan, kalimatSuara);
 
-                hadirCount++;
-                document.getElementById('counterText').innerText = `${hadirCount} Hadir`;
+                if (statusSesi === 'Pulang') pulangCount++;
+                else if (statusSesi === 'Terlambat') telatCount++;
+                else masukCount++;
+                updateCounterUI();
 
             } catch (err) {
                 console.error("Gagal menyimpan ke Supabase:", err);
@@ -547,7 +724,7 @@
         }
 
         // =========================================================================
-        // DETEKSI OTOMATIS QR CODE GURU (NIP & Nama) DAN SISWA (NIS, Nama, Kelas)
+        // 6. DETEKSI OTOMATIS QR CODE GURU (NIP & Nama) DAN SISWA (NIS, Nama, Kelas)
         // =========================================================================
         function tangkapDataScan(decodedText) {
             const now = Date.now();
@@ -562,7 +739,6 @@
             let namaTampil = "";
             let idTampil = "";
 
-            // 1. Cek jika QR berformat JSON
             if (raw.startsWith('{') && raw.endsWith('}')) {
                 try {
                     const data = JSON.parse(raw);
@@ -578,7 +754,6 @@
                 } catch (e) {}
             }
 
-            // 2. Cek jika QR berformat Teks Baris (NIP: ... / NIS: ... dan Nama: ...)
             if (!payloadAbsen) {
                 let nip = "", nis = "", nama = "", kelas = "";
                 const barisText = raw.split(/\r?\n/);
@@ -597,26 +772,22 @@
                 });
 
                 if (nip && nama) {
-                    // Terdeteksi sebagai QR Code Guru
                     payloadAbsen = { tipe: 'guru', nip: nip, nama: nama };
                     namaTampil = nama;
                     idTampil = nip;
                 } else if (nis && nama) {
-                    // Terdeteksi sebagai QR Code Siswa
                     payloadAbsen = { tipe: 'siswa', nis: nis, nama: nama, kelas: kelas };
                     namaTampil = nama;
                     idTampil = nis;
                 }
             }
 
-            // 3. Cek jika input berupa Kartu RFID / Kode Angka NIP atau NIS Tunggal
             if (!payloadAbsen && /^[a-zA-Z0-9\-_]{4,30}$/.test(raw)) {
                 payloadAbsen = { rfidUid: raw };
                 namaTampil = "";
                 idTampil = raw;
             }
 
-            // Eksekusi pengiriman absen jika format dikenali
             if (payloadAbsen) {
                 prosesAbsen(payloadAbsen, namaTampil, idTampil);
             } else {
@@ -627,9 +798,15 @@
         }
 
         const scanInput = document.getElementById('rfidFocusInput');
-        function jagaFokusInput() { scanInput.focus({ preventScroll: true }); }
+        function jagaFokusInput() {
+            if (document.getElementById('modalJamPulang').classList.contains('hidden')) {
+                scanInput.focus({ preventScroll: true });
+            }
+        }
         window.addEventListener('load', jagaFokusInput);
-        document.addEventListener('click', jagaFokusInput);
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#modalJamPulang')) jagaFokusInput();
+        });
         setInterval(jagaFokusInput, 1500);
 
         scanInput.addEventListener('keypress', function(e) {
